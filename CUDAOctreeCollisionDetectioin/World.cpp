@@ -21,9 +21,9 @@ void World::addBalls(const int n) {
     for (int i = 0; i < n; i++) {
         Ball* b = new Ball();
         b->pos = glm::vec3(
-            SCENE_MAX_X * randFloat(),
-            SCENE_MAX_Y * randFloat(),
-            SCENE_MAX_Z * randFloat()
+            BOX_SIZE * randFloat() - SCENE_MAX_X,
+            BOX_SIZE * randFloat() - SCENE_MAX_Y,
+            BOX_SIZE * randFloat() - SCENE_MAX_Z
         );
         b->v = glm::vec3(
             MAX_VELOCITY * randFloat(),
@@ -55,6 +55,10 @@ void World::step(float t, float& timeUntilUpdate) {
             t = 0;
         }
     }
+}
+
+std::vector<Ball*>& World::getBalls() {
+    return balls;
 }
 
 void World::move(float dt) {

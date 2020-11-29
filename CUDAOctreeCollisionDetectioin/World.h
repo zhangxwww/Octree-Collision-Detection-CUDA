@@ -7,13 +7,17 @@
 #include "Octree.h"
 #include "Constant.h"
 
+
+
 class World {
 public:
     World();
     ~World();
 
     void addBalls(const int n);
-    void step(float t, float& timeUtilUpdate);
+    void step(float t, float& timeUntilUpdate);
+
+    std::vector<Ball*>& getBalls();
 
 private:
     void move(float dt);

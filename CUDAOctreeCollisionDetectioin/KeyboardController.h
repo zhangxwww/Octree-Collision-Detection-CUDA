@@ -21,7 +21,7 @@ private:
     bool goDown = false;
 
     float theta = 0.0f;
-    float radius = 10.0f;
+    float radius = 20.0f;
     float height = 0.0f;
 
     bool _shouldClose = false;

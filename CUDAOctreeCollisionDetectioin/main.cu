@@ -14,22 +14,17 @@
 
 #include "Shader.h"
 #include "KeyboardController.h"
+#include "World.h"
 
 #include "Constant.h"
 
 
-
+World world;
 KeyboardController keyboardController;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLFWwindow* init();
 void initSphere();
-
-glm::vec3 positions[] = {
-    glm::vec3(-1.0f, 0.0f, -1.0f),
-    glm::vec3(1.0f, 0.0f, 1.0f),
-    glm::vec3(-1.0f, 0.0f, 0.0f)
-};
 
 std::vector<float> sphereVertices;
 std::vector<int> sphereIndices;
@@ -49,7 +44,7 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(float), &sphereVertices[0], GL_STATIC_DRAW);
 
-    GLuint element_buffer_object;//EBO
+    GLuint element_buffer_object;
     glGenBuffers(1, &element_buffer_object);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_object);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphereIndices.size() * sizeof(int), &sphereIndices[0], GL_STATIC_DRAW);
@@ -60,9 +55,27 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    unsigned int wallVBO, wallVAO, wallEBO;
+    glGenVertexArrays(1, &wallVAO);
+    glGenBuffers(1, &wallVBO);
+    glGenBuffers(1, &wallEBO);
+    glBindVertexArray(wallVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, wallVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(wall.vertex), wall.vertex, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, wallEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(wall.indices), wall.indices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+
     Shader shader;
     shader.loadFromFile("vertex.glsl", "fragment.glsl");
 
+    world.addBalls(7);
+
+    float time_until_update = 0;
     float lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window) && !keyboardController.shouldClose()) {
         float currentTime = glfwGetTime();
@@ -70,31 +83,44 @@ int main() {
         lastTime = currentTime;
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
 
         shader.use();
 
         keyboardController.step(deltaTime);
+        world.step(deltaTime, time_until_update);
 
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)(WIDTH) / HEIGHT, 1.0f, 100.0f);
         glm::mat4 view = glm::lookAt(keyboardController.getEyePos(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
-        for (int i = 0; i < 3; ++i) {
+        shader.setMat4("v", view);
+        shader.setMat4("p", projection);
+
+        for (Ball* b : world.getBalls()) {
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, positions[i]);
+            model = glm::translate(model, b->pos);
             model = glm::scale(model, glm::vec3(RADIUS, RADIUS, RADIUS));
 
             shader.setMat4("m", model);
-            shader.setMat4("v", view);
-            shader.setMat4("p", projection);
-            shader.setVec3("color", glm::vec3(1.0f, 1.0f, 1.0f));
+            shader.setVec3("color", b->color);
 
-            glEnable(GL_CULL_FACE);
-            glCullFace(GL_BACK);
             glBindVertexArray(VAO);
             glPointSize(2);
             glDrawElements(GL_POINTS, X_SEGMENTS * Y_SEGMENTS * 6, GL_UNSIGNED_INT, 0);
         }
+
+        shader.setVec3("color", wall.color);
+
+        shader.setMat4("m", wall.floorTrans);
+        glBindVertexArray(wallVAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        shader.setMat4("m", wall.ceilTrans);
+        glBindVertexArray(wallVAO);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
        
         glfwSwapBuffers(window);
         glfwPollEvents();
