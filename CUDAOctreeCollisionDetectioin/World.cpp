@@ -30,6 +30,7 @@ void World::addBalls(const int n) {
             MAX_VELOCITY * randFloat(),
             MAX_VELOCITY * randFloat()
         );
+        b->v = b->v * glm::vec3(2.0f) - glm::vec3(MAX_VELOCITY);
         b->radius = RADIUS;
         b->color = glm::vec3(
             0.6f * randFloat() + 0.2f,
@@ -125,9 +126,9 @@ glm::vec3 World::wallDirection(WALL_TYPE w) const {
     case WALL_TYPE::RIGHT:
         return glm::vec3(1.0f, 0.0f, 0.0f);
     case WALL_TYPE::FAR:
-        return glm::vec3(0.0f, 0.0f, 1.0f);
-    case WALL_TYPE::NEAR:
         return glm::vec3(0.0f, 0.0f, -1.0f);
+    case WALL_TYPE::NEAR:
+        return glm::vec3(0.0f, 0.0f, 1.0f);
     case WALL_TYPE::TOP:
         return glm::vec3(0.0f, 1.0f, 0.0f);
     case WALL_TYPE::BOTTOM:

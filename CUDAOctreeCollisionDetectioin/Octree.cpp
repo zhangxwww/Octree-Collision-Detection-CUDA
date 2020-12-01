@@ -114,7 +114,7 @@ void Octree::destroyChildren() {
     has_children = false;
 }
 
-void Octree::addOrRemove(Ball* ball, glm::vec3 pos, bool addOrRemove) {
+void Octree::addOrRemove(Ball* ball, glm::vec3 pos, bool isAdd) {
     for (int i = 0; i < 2; i++) {
         if (i == 0) {
             if (pos.x - ball->radius > center.x) {
@@ -130,9 +130,9 @@ void Octree::addOrRemove(Ball* ball, glm::vec3 pos, bool addOrRemove) {
                 if (pos.y - ball->radius > center.y) {
                     continue;
                 }
-                else if (pos.y + ball->radius < center.y) {
-                    continue;
-                }
+            }
+            else if (pos.y + ball->radius < center.y) {
+                continue;
             }
 
             for (int k = 0; k < 2; k++) {
@@ -140,16 +140,15 @@ void Octree::addOrRemove(Ball* ball, glm::vec3 pos, bool addOrRemove) {
                     if (pos.z - ball->radius > center.z) {
                         continue;
                     }
-                    else if (pos.z + ball->radius < center.z) {
-                        continue;
-                    }
-
-                    if (addOrRemove) {
-                        children[i][j][k]->add(ball);
-                    }
-                    else {
-                        children[i][j][k]->remove(ball, pos);
-                    }
+                }
+                else if (pos.z + ball->radius < center.z) {
+                    continue;
+                }
+                if (isAdd) {
+                    children[i][j][k]->add(ball);
+                }
+                else {
+                    children[i][j][k]->remove(ball, pos);
                 }
             }
         }

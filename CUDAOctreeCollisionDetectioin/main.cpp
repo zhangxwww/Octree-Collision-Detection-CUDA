@@ -73,7 +73,7 @@ int main() {
     Shader shader;
     shader.loadFromFile("vertex.glsl", "fragment.glsl");
 
-    world.addBalls(7);
+    world.addBalls(300);
 
     float time_until_update = 0;
     float lastTime = glfwGetTime();
@@ -99,6 +99,7 @@ int main() {
         shader.setMat4("v", view);
         shader.setMat4("p", projection);
 
+        // draw balls
         for (Ball* b : world.getBalls()) {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, b->pos);
@@ -112,6 +113,7 @@ int main() {
             glDrawElements(GL_POINTS, X_SEGMENTS * Y_SEGMENTS * 6, GL_UNSIGNED_INT, 0);
         }
 
+        // draw walls
         shader.setVec3("color", wall.color);
 
         shader.setMat4("m", wall.floorTrans);
