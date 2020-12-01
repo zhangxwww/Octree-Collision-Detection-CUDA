@@ -83,10 +83,12 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="CollisionHandler.cu" />
     <CudaCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Constant.h" />
+    <ClInclude Include="CollisionHandler.cuh" />
+    <ClInclude Include="Constant.cuh" />
     <ClInclude Include="KeyboardController.h" />
     <ClInclude Include="Octree.h" />
     <ClInclude Include="Shader.h" />

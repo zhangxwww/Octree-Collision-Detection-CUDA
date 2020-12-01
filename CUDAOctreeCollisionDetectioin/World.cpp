@@ -78,9 +78,8 @@ void World::applyGravity() {
 
 bool World::testBallBallCollision(BallPair bp)
 {
-    float r = 2 * RADIUS;
     glm::vec3 displacement = bp.b1->pos - bp.b2->pos;
-    if (glm::dot(displacement, displacement) < r * r) {
+    if (glm::dot(displacement, displacement) < RADIUS_SQUARE_4) {
         glm::vec3 dv = bp.b1->v - bp.b2->v;
         return glm::dot(dv, displacement) < 0; 
     }

@@ -5,7 +5,7 @@
 
 #include <glm/glm.hpp>
 
-#include "Constant.h"
+#include "Constant.cuh"
 
 
 struct Ball {

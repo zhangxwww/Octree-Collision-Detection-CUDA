@@ -16,7 +16,7 @@
 #include "KeyboardController.h"
 #include "World.h"
 
-#include "Constant.h"
+#include "Constant.cuh"
 
 
 World world;

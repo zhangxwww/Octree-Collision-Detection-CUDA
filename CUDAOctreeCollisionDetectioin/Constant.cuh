@@ -1,5 +1,8 @@
 #pragma once
 
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -30,6 +33,7 @@ const int SCENE_MIN_Y = -SCENE_MAX_Y;
 const int SCENE_MIN_Z = -SCENE_MAX_Z;
 
 const float RADIUS = 0.2;
+__constant__ const float RADIUS_SQUARE_4 = 0.16;
 const float MAX_VELOCITY = 3;
 
 struct Wall {

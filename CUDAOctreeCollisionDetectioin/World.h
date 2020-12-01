@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "Octree.h"
-#include "Constant.h"
-
+#include "Constant.cuh"
+#include "CollisionHandler.cuh"
 
 
 class World {
