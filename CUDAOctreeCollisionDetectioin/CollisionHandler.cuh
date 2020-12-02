@@ -34,11 +34,17 @@ bool _mallocForBallBallCollisions(
     glm::vec3** p1, glm::vec3** p2,
     glm::vec3** p3, glm::vec3** p4,
     glm::vec3** p5, glm::vec3** p6,
+    float** m1, float** m2,
+    float** r1, float** r2,
+    float** e1, float** e2,
     int n
 );
 void _initForBallBallCollisions(
     glm::vec3* b_pos_1, glm::vec3* b_pos_2,
     glm::vec3* b_v_1, glm::vec3* b_v_2,
+    float* m1, float* m2,
+    float* r1, float* r2,
+    float* e1, float* e2,
     std::vector<BallPair> bps, int n
 );
 void _updateVelocity(

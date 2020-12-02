@@ -73,7 +73,7 @@ int main() {
     Shader shader;
     shader.loadFromFile("vertex.glsl", "fragment.glsl");
 
-    world.addBalls(300);
+    world.addBalls(5);
 
     float time_until_update = 0;
     float lastTime = glfwGetTime();
@@ -103,7 +103,7 @@ int main() {
         for (Ball* b : world.getBalls()) {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, b->pos);
-            model = glm::scale(model, glm::vec3(RADIUS, RADIUS, RADIUS));
+            model = glm::scale(model, glm::vec3(b->radius));
 
             shader.setMat4("m", model);
             shader.setVec3("color", b->color);

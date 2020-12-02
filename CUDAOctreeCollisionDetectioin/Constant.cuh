@@ -32,8 +32,12 @@ const int SCENE_MIN_X = -SCENE_MAX_X;
 const int SCENE_MIN_Y = -SCENE_MAX_Y;
 const int SCENE_MIN_Z = -SCENE_MAX_Z;
 
-const float RADIUS = 0.2;
-__constant__ const float RADIUS_SQUARE_4 = 0.16;
+const float MAX_RADIUS = 0.3;
+const float MIN_RADIUS = 0.1;
+
+const float MAX_MASS = 5;
+const float MIN_MASS = 1;
+
 const float MAX_VELOCITY = 3;
 
 struct Wall {

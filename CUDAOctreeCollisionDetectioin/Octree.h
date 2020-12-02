@@ -12,6 +12,8 @@ struct Ball {
     glm::vec3 v;
     glm::vec3 pos;
     float radius;
+    float m;
+    float e;
     glm::vec3 color;
 };
 

@@ -4,6 +4,10 @@ float randFloat() {
     return (float)rand() / ((float)RAND_MAX + 1);
 }
 
+glm::vec3 randVec3() {
+    return glm::vec3(randFloat(), randFloat(), randFloat());
+}
+
 
 World::World() {
     root = new Octree(
@@ -20,23 +24,12 @@ World::~World() {
 void World::addBalls(const int n) {
     for (int i = 0; i < n; i++) {
         Ball* b = new Ball();
-        b->pos = glm::vec3(
-            BOX_SIZE * randFloat() - SCENE_MAX_X,
-            BOX_SIZE * randFloat() - SCENE_MAX_Y,
-            BOX_SIZE * randFloat() - SCENE_MAX_Z
-        );
-        b->v = glm::vec3(
-            MAX_VELOCITY * randFloat(),
-            MAX_VELOCITY * randFloat(),
-            MAX_VELOCITY * randFloat()
-        );
-        b->v = b->v * glm::vec3(2.0f) - glm::vec3(MAX_VELOCITY);
-        b->radius = RADIUS;
-        b->color = glm::vec3(
-            0.6f * randFloat() + 0.2f,
-            0.6f * randFloat() + 0.2f,
-            0.6f * randFloat() + 0.2f
-        );
+        b->pos = randVec3() * BOX_SIZE - glm::vec3(SCENE_MAX_X, SCENE_MAX_Y, SCENE_MAX_Z);
+        b->v = randVec3() * 2.0f - glm::vec3(MAX_VELOCITY);
+        b->radius = randFloat() * (MAX_RADIUS - MIN_RADIUS) + MIN_RADIUS;
+        b->color = randVec3() * 0.6f + 0.2f;
+        b->m = randFloat() * (MAX_MASS - MIN_MASS) + MIN_MASS;
+        b->e = randFloat();
         balls.push_back(b);
         root->add(b);
     }
@@ -79,7 +72,8 @@ void World::applyGravity() {
 bool World::testBallBallCollision(BallPair bp)
 {
     glm::vec3 displacement = bp.b1->pos - bp.b2->pos;
-    if (glm::dot(displacement, displacement) < RADIUS_SQUARE_4) {
+    float r = bp.b1->radius + bp.b2->radius;
+    if (glm::dot(displacement, displacement) < r * r) {
         glm::vec3 dv = bp.b1->v - bp.b2->v;
         return glm::dot(dv, displacement) < 0; 
     }
@@ -95,15 +89,8 @@ bool World::testBallWallCollision(BallWall bw) {
 void World::handleBallBallCollisions() {
     std::vector<BallPair> bps;
     root->potentialBallBallCollisions(bps);
-    for (BallPair bp : bps) {
-        if (testBallBallCollision(bp)) {
-            Ball* b1 = bp.b1;
-            Ball* b2 = bp.b2;
-            glm::vec3 displacement = glm::normalize(b1->pos - b2->pos);
-            b1->v -= glm::vec3(2.0f) * displacement * glm::dot(b1->v, displacement);
-            b2->v -= glm::vec3(2.0f) * displacement * glm::dot(b2->v, displacement);
-        }
-    }
+   //  handleBallBallCollisionsCpu(bps);
+    handleBallBallCollisionsCuda(bps);
 }
 
 void World::handleBallWallCollisions() {
@@ -113,6 +100,23 @@ void World::handleBallWallCollisions() {
         if (testBallWallCollision(bw)) {
             glm::vec3 dir = glm::normalize(wallDirection(bw.w));
             bw.b->v -= glm::vec3(2.0f) * dir * glm::dot(bw.b->v, dir);
+        }
+    }
+}
+
+void World::handleBallBallCollisionsCpu(std::vector<BallPair> bps) {
+    for (BallPair bp : bps) {
+        if (testBallBallCollision(bp)) {
+            Ball* b1 = bp.b1;
+            Ball* b2 = bp.b2;
+            glm::vec3 displacement = glm::normalize(b1->pos - b2->pos);
+            float e = std::min(b1->e, b2->e);
+            glm::vec3 vr1 = glm::dot(b1->v, displacement) * displacement;
+            glm::vec3 vr2 = glm::dot(b2->v, displacement) * displacement;
+            glm::vec3 dvr1 = ((1 + e) * b2->m * (vr2 - vr1)) / (b1->m + b2->m);
+            glm::vec3 dvr2 = ((1 + e) * b1->m * (vr1 - vr2)) / (b1->m + b2->m);
+            b1->v += dvr1;
+            b2->v += dvr2;
         }
     }
 }

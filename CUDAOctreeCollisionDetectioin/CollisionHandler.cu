@@ -4,16 +4,19 @@
 
 
 void handleBallBallCollisionsCuda(std::vector<BallPair> bps) {
+
     int n = bps.size();
+
     glm::vec3* bp1, * bp2, * bv1, * bv2, * bvo1, * bvo2;
+    float* m1, * m2, * r1, * r2, * e1, * e2;
     
     if (!_checkDevice()) {
         goto ErrorDevice;
     }
-    if (!_mallocForBallBallCollisions(&bp1, &bp2, &bv1, &bv2, &bvo1, &bvo2, n)) {
+    if (!_mallocForBallBallCollisions(&bp1, &bp2, &bv1, &bv2, &bvo1, &bvo2, &m1, &m2, &r1, &r2, &e1, &e2, n)) {
         goto ErrorMalloc;
     }
-    _initForBallBallCollisions(bp1, bp2, bv1, bv2, bps, n);
+    _initForBallBallCollisions(bp1, bp2, bv1, bv2, m1, m2, r1, r2, e1, e2, bps, n);
     
     dim3 blockSize(256);
     dim3 gridSize((n + blockSize.x - 1) / blockSize.x);
@@ -26,23 +29,29 @@ void handleBallBallCollisionsCuda(std::vector<BallPair> bps) {
 
     _updateVelocity(bps, n, bvo1, bvo2);
 
-    return;
+    goto Return;
 
 ErrorDevice:
     fprintf(stderr, "cudaSetDevice failed!");
-    goto Error;
+    goto Return;
 
 ErrorMalloc:
     fprintf(stderr, "cudaMalloc failed!");
-    goto Error;
+    goto Return;
 
-Error:
+Return:
     cudaFree(bv1);
     cudaFree(bv2);
     cudaFree(bp1);
     cudaFree(bp2);
     cudaFree(bvo1);
     cudaFree(bvo2);
+    cudaFree(m1);
+    cudaFree(m2);
+    cudaFree(r1);
+    cudaFree(r2);
+    cudaFree(e1);
+    cudaFree(e2);
 
     return;
 }
@@ -62,7 +71,7 @@ void _handleBallBallCollisions(
         glm::vec3 v1 = b_v_1[i];
         glm::vec3 v2 = b_v_2[i];
         glm::vec3 displacement = p1 - p2;
-        if (glm::dot(displacement, displacement) < RADIUS_SQUARE_4) {
+        if (glm::dot(displacement, displacement) < 0.16) {
             glm::vec3 dv = v1 - v2;
             if (glm::dot(dv, displacement) < 0) {
                 glm::vec3 dis = glm::normalize(displacement);
@@ -80,31 +89,60 @@ bool _checkDevice() {
 bool _mallocForBallBallCollisions(
     glm::vec3** p1, glm::vec3** p2, 
     glm::vec3** p3, glm::vec3** p4, 
-    glm::vec3** p5, glm::vec3** p6, int n) {
+    glm::vec3** p5, glm::vec3** p6,
+    float** m1, float** m2,
+    float** r1, float** r2,
+    float** e1, float** e2,
+    int n) {
 
-    int size = n * sizeof(glm::vec3);
+    int v_size = n * sizeof(glm::vec3);
+    int f_size = n * sizeof(float);
     cudaError_t cudaStatus;
-    cudaStatus = cudaMallocManaged(&p1, size);
+    cudaStatus = cudaMallocManaged(p1, v_size);
     if (cudaStatus != cudaSuccess) {
         return false;
     }
-    cudaStatus = cudaMallocManaged(&p2, size);
+    cudaStatus = cudaMallocManaged(p2, v_size);
     if (cudaStatus != cudaSuccess) {
         return false;
     }
-    cudaStatus = cudaMallocManaged(&p3, size);
+    cudaStatus = cudaMallocManaged(p3, v_size);
     if (cudaStatus != cudaSuccess) {
         return false;
     }
-    cudaStatus = cudaMallocManaged(&p4, size);
+    cudaStatus = cudaMallocManaged(p4, v_size);
     if (cudaStatus != cudaSuccess) {
         return false;
     }
-    cudaStatus = cudaMallocManaged(&p5, size);
+    cudaStatus = cudaMallocManaged(p5, v_size);
     if (cudaStatus != cudaSuccess) {
         return false;
     }
-    cudaStatus = cudaMallocManaged(&p6, size);
+    cudaStatus = cudaMallocManaged(p6, v_size);
+    if (cudaStatus != cudaSuccess) {
+        return false;
+    }
+    cudaStatus = cudaMallocManaged(m1, f_size);
+    if (cudaStatus != cudaSuccess) {
+        return false;
+    }
+    cudaStatus = cudaMallocManaged(m2, f_size);
+    if (cudaStatus != cudaSuccess) {
+        return false;
+    }
+    cudaStatus = cudaMallocManaged(r1, f_size);
+    if (cudaStatus != cudaSuccess) {
+        return false;
+    }
+    cudaStatus = cudaMallocManaged(r2, f_size);
+    if (cudaStatus != cudaSuccess) {
+        return false;
+    }
+    cudaStatus = cudaMallocManaged(e1, f_size);
+    if (cudaStatus != cudaSuccess) {
+        return false;
+    }
+    cudaStatus = cudaMallocManaged(e2, f_size);
     if (cudaStatus != cudaSuccess) {
         return false;
     }
@@ -114,6 +152,9 @@ bool _mallocForBallBallCollisions(
 void _initForBallBallCollisions(
     glm::vec3* b_pos_1, glm::vec3* b_pos_2, 
     glm::vec3* b_v_1, glm::vec3* b_v_2, 
+    float* m1, float* m2,
+    float* r1, float* r2,
+    float* e1, float* e2,
     std::vector<BallPair> bps, int n) {
 
     for (int i = 0; i < n; i++) {
@@ -123,6 +164,12 @@ void _initForBallBallCollisions(
         b_pos_2[i] = b2->pos;
         b_v_1[i] = b1->v;
         b_v_2[i] = b2->v;
+        m1[i] = b1->m;
+        m2[i] = b2->m;
+        r1[i] = b1->radius;
+        r2[i] = b2->radius;
+        e1[i] = b1->e;
+        e2[i] = b2->e;
     }
 }
 

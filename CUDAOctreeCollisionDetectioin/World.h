@@ -29,6 +29,8 @@ private:
     void handleBallBallCollisions();
     void handleBallWallCollisions();
 
+    void handleBallBallCollisionsCpu(std::vector<BallPair> bps);
+
     glm::vec3 wallDirection(WALL_TYPE w) const;
 
     void performUpdate();
