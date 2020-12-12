@@ -24,6 +24,8 @@ KeyboardController keyboardController;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLFWwindow* init();
+
+// Generate coordinates and indices for the vetices of the ball
 void initSphere();
 
 std::vector<float> sphereVertices;

@@ -2,13 +2,26 @@
 
 #include <stdio.h>
 
+// position, velocity, mass, radius, COR of the balls, host
 glm::vec3 bp[MAX_BALLS], bv[MAX_BALLS];
 float mass[MAX_BALLS], r[MAX_BALLS], e[MAX_BALLS];
-int id1[MAX_COLLISIONS], id2[MAX_COLLISIONS], id3[MAX_COLLISIONS], id4[MAX_COLLISIONS];
 
+// the indices of the colliding balls, host
+int id1[MAX_COLLISIONS], id2[MAX_COLLISIONS];
+
+// the indices of the colliding ball-wall, host
+int id3[MAX_COLLISIONS], id4[MAX_COLLISIONS];
+
+
+// position, velocity, mass, radius, COR of the balls, device
 __device__ glm::vec3 d_bp[MAX_BALLS], d_bv[MAX_BALLS];
 __device__ float d_mass[MAX_BALLS], d_r[MAX_BALLS], d_e[MAX_BALLS];
-__device__ int d_id1[MAX_COLLISIONS], d_id2[MAX_COLLISIONS], d_id3[MAX_COLLISIONS], d_id4[MAX_COLLISIONS];
+
+// the indices of the colliding balls, device
+__device__ int d_id1[MAX_COLLISIONS], d_id2[MAX_COLLISIONS];
+
+// the indices of the colliding ball-wall, device
+__device__ int d_id3[MAX_COLLISIONS], d_id4[MAX_COLLISIONS];
 
 
 void updateBallsInfo(std::vector<Ball*>& balls, int n) {

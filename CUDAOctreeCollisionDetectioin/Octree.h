@@ -43,9 +43,14 @@ public:
     Octree(glm::vec3 min, glm::vec3 max, int depth_);
     ~Octree();
 
+    // add the ball into the tree
     void add(Ball* ball);
+    // remove the ball from the tree
     void remove(Ball* ball);
+    // move the ball from the old position to the new one
     void move(Ball* ball, glm::vec3 old);
+
+    // find potential collisions and push them into the vector
     void potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions);
     void potentialBallBallCollisions(std::vector<BallIndexPair>& collisions);
 
