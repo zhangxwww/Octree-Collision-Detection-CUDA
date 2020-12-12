@@ -42,7 +42,7 @@ void Octree::move(Ball* ball, glm::vec3 old) {
     add(ball);
 }
 
-void Octree::potentialBallWallCollisions(std::vector<BallWall>& collisions) {
+void Octree::potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions) {
     potentialBallWallCollisions(collisions, WALL_TYPE::LEFT, 'x', 0);
     potentialBallWallCollisions(collisions, WALL_TYPE::RIGHT, 'x', 1);
     potentialBallWallCollisions(collisions, WALL_TYPE::BOTTOM, 'y', 0);
@@ -51,7 +51,7 @@ void Octree::potentialBallWallCollisions(std::vector<BallWall>& collisions) {
     potentialBallWallCollisions(collisions, WALL_TYPE::NEAR, 'z', 1);
 }
 
-void Octree::potentialBallBallCollisions(std::vector<BallPair>& collisions) {
+void Octree::potentialBallBallCollisions(std::vector<BallIndexPair>& collisions) {
     if (has_children) {
         for (int i = 0; i < 2; i++) {
             for (int j = 0; j < 2; j++) {
@@ -65,10 +65,10 @@ void Octree::potentialBallBallCollisions(std::vector<BallPair>& collisions) {
         for (auto it1 = balls.begin(); it1 != balls.end(); it1++) {
             for (auto it2 = balls.begin(); it2 != balls.end(); it2++) {
                 if (*it1 < *it2) {
-                    BallPair bp;
-                    bp.b1 = *it1;
-                    bp.b2 = *it2;
-                    collisions.push_back(bp);
+                    BallIndexPair bip;
+                    bip.id1 = (*it1)->id;
+                    bip.id2 = (*it2)->id;
+                    collisions.push_back(bip);
                 }
             }
         }
@@ -185,7 +185,8 @@ void Octree::remove(Ball* ball, glm::vec3 pos) {
     }
 }
 
-void Octree::potentialBallWallCollisions(std::vector<BallWall>& collisions, WALL_TYPE w, char coord, int dir) {
+
+void Octree::potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions, WALL_TYPE w, char coord, int dir) {
     if (has_children) {
         for (int d2 = 0; d2 < 2; d2++) {
             for (int d3 = 0; d3 < 2; d3++) {
@@ -209,10 +210,11 @@ void Octree::potentialBallWallCollisions(std::vector<BallWall>& collisions, WALL
     }
     else {
         for (Ball* b : balls) {
-            BallWall bw;
-            bw.w = w;
-            bw.b = b;
-            collisions.push_back(bw);
+            BallWallIndexPair bwip;
+            bwip.bid = b->id;
+            bwip.wid = static_cast<int>(w);
+            collisions.push_back(bwip);
         }
     }
 }
+

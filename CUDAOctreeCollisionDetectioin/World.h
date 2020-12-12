@@ -23,13 +23,14 @@ private:
     void move(float dt);
     void applyGravity();
 
-    bool testBallBallCollision(BallPair bp);
-    bool testBallWallCollision(BallWall bw);
+    bool testBallBallCollision(BallIndexPair bip);
+    bool testBallWallCollision(BallWallIndexPair bwip);
 
     void handleBallBallCollisions();
     void handleBallWallCollisions();
 
-    void handleBallBallCollisionsCpu(std::vector<BallPair> bps);
+    void handleBallBallCollisionsCpu(std::vector<BallIndexPair>& bips);
+    void handleBallWallCollisionsCpu(std::vector<BallWallIndexPair>& bwips);
 
     glm::vec3 wallDirection(WALL_TYPE w) const;
 

@@ -11,44 +11,21 @@
 #include "Constant.cuh"
 
 
-
-void handleBallBallCollisionsCuda(std::vector<BallPair> bps);
-
+void updateBallsInfo(std::vector<Ball*>& balls, int n);
+void handleBallBallCollisionsCuda(std::vector<BallIndexPair>& bips, std::vector<Ball*>& balls);
+void handleBallWallCollisionsCuda(std::vector<BallWallIndexPair>& bwips, std::vector<Ball*>& balls);
+void updateVelocity( std::vector<Ball*>& balls, int n);
 
 __global__
-void _handleBallBallCollisions(
-    glm::vec3* b_pos_1, glm::vec3* b_pos_2,
-    glm::vec3* b_v_1, glm::vec3* b_v_2,
-    glm::vec3* b_v_out_1, glm::vec3* b_v_out_2,
-    int n
-);
+void _handleBallBallCollisions(int n);
 
-/*
 __global__
-void _handleBallWallCollisions() {};
-*/
+void _handleBallWallCollisions(int n);
 
+__device__
+glm::vec3 getWallDir(int w);
 
-bool _checkDevice();
-bool _mallocForBallBallCollisions(
-    glm::vec3** p1, glm::vec3** p2,
-    glm::vec3** p3, glm::vec3** p4,
-    glm::vec3** p5, glm::vec3** p6,
-    float** m1, float** m2,
-    float** r1, float** r2,
-    float** e1, float** e2,
-    int n
-);
-void _initForBallBallCollisions(
-    glm::vec3* b_pos_1, glm::vec3* b_pos_2,
-    glm::vec3* b_v_1, glm::vec3* b_v_2,
-    float* m1, float* m2,
-    float* r1, float* r2,
-    float* e1, float* e2,
-    std::vector<BallPair> bps, int n
-);
-void _updateVelocity(
-    std::vector<BallPair> bps, int n,
-    glm::vec3* b_v_out_1, glm::vec3* b_v_out_2
-);
+void _initBallInfo(std::vector<Ball*>& balls, int n);
+void _updateBallBallCollisionInfo(std::vector<BallIndexPair>& bips, int m);
+void _updateBallWallCollisionInfo(std::vector<BallWallIndexPair>& bwips, int m);
 

@@ -2,184 +2,172 @@
 
 #include <stdio.h>
 
+glm::vec3 bp[MAX_BALLS], bv[MAX_BALLS];
+float mass[MAX_BALLS], r[MAX_BALLS], e[MAX_BALLS];
+int id1[MAX_COLLISIONS], id2[MAX_COLLISIONS], id3[MAX_COLLISIONS], id4[MAX_COLLISIONS];
 
-void handleBallBallCollisionsCuda(std::vector<BallPair> bps) {
+__device__ glm::vec3 d_bp[MAX_BALLS], d_bv[MAX_BALLS];
+__device__ float d_mass[MAX_BALLS], d_r[MAX_BALLS], d_e[MAX_BALLS];
+__device__ int d_id1[MAX_COLLISIONS], d_id2[MAX_COLLISIONS], d_id3[MAX_COLLISIONS], d_id4[MAX_COLLISIONS];
 
-    int n = bps.size();
 
-    glm::vec3* bp1, * bp2, * bv1, * bv2, * bvo1, * bvo2;
-    float* m1, * m2, * r1, * r2, * e1, * e2;
-    
-    if (!_checkDevice()) {
-        goto ErrorDevice;
+void updateBallsInfo(std::vector<Ball*>& balls, int n) {
+    for (int i = 0; i < n; i++) {
+        bp[i] = balls[i]->pos;
+        bv[i] = balls[i]->v;
     }
-    if (!_mallocForBallBallCollisions(&bp1, &bp2, &bv1, &bv2, &bvo1, &bvo2, &m1, &m2, &r1, &r2, &e1, &e2, n)) {
-        goto ErrorMalloc;
-    }
-    _initForBallBallCollisions(bp1, bp2, bv1, bv2, m1, m2, r1, r2, e1, e2, bps, n);
-    
-    dim3 blockSize(256);
+
+    int v_size = n * sizeof(glm::vec3);
+    cudaMemcpyToSymbol(d_bp, bp, v_size, 0);
+    cudaMemcpyToSymbol(d_bv, bv, v_size, 0);
+}
+
+void handleBallBallCollisionsCuda(std::vector<BallIndexPair>& bips, std::vector<Ball*>& balls) {
+
+    int n = balls.size();
+    int m = bips.size();
+
+    _updateBallBallCollisionInfo(bips, m);
+
+    dim3 blockSize(64);
     dim3 gridSize((n + blockSize.x - 1) / blockSize.x);
-    
-    _handleBallBallCollisions << <gridSize, blockSize >> > (
-        bp1, bp2, bv1, bv2, bvo1, bvo2, n
-    );
 
-    cudaDeviceSynchronize();
+    _handleBallBallCollisions << <gridSize, blockSize >> > (m);
+}
 
-    _updateVelocity(bps, n, bvo1, bvo2);
+void handleBallWallCollisionsCuda(std::vector<BallWallIndexPair>& bwips, std::vector<Ball*>& balls) {
 
-    goto Return;
+    int n = balls.size();
+    int m = bwips.size();
 
-ErrorDevice:
-    fprintf(stderr, "cudaSetDevice failed!");
-    goto Return;
+    _updateBallWallCollisionInfo(bwips, m);
 
-ErrorMalloc:
-    fprintf(stderr, "cudaMalloc failed!");
-    goto Return;
+    dim3 blockSize(64);
+    dim3 gridSize((n + blockSize.x - 1) / blockSize.x);
 
-Return:
-    cudaFree(bv1);
-    cudaFree(bv2);
-    cudaFree(bp1);
-    cudaFree(bp2);
-    cudaFree(bvo1);
-    cudaFree(bvo2);
-    cudaFree(m1);
-    cudaFree(m2);
-    cudaFree(r1);
-    cudaFree(r2);
-    cudaFree(e1);
-    cudaFree(e2);
-
-    return;
+    _handleBallWallCollisions << <gridSize, blockSize >> > (m);
 }
 
 __global__
-void _handleBallBallCollisions(
-    glm::vec3* b_pos_1, glm::vec3* b_pos_2, 
-    glm::vec3* b_v_1, glm::vec3* b_v_2, 
-    glm::vec3* b_v_out_1, glm::vec3* b_v_out_2, 
-    int n
-) {
+void _handleBallBallCollisions(int n) {
     int index = threadIdx.x + blockIdx.x * blockDim.x;
     int stride = blockDim.x * gridDim.x;
     for (int i = index; i < n; i += stride) {
-        glm::vec3 p1 = b_pos_1[i];
-        glm::vec3 p2 = b_pos_2[i];
-        glm::vec3 v1 = b_v_1[i];
-        glm::vec3 v2 = b_v_2[i];
+        int index1 = d_id1[i];
+        int index2 = d_id2[i];
+        glm::vec3 p1 = d_bp[index1];
+        glm::vec3 p2 = d_bp[index2];
+        float r = d_r[index1] + d_r[index2];
         glm::vec3 displacement = p1 - p2;
-        if (glm::dot(displacement, displacement) < 0.16) {
+        if (glm::dot(displacement, displacement) < r * r)  {
+            glm::vec3 v1 = d_bv[index1];
+            glm::vec3 v2 = d_bv[index2];
             glm::vec3 dv = v1 - v2;
             if (glm::dot(dv, displacement) < 0) {
+                float e1 = d_e[index1];
+                float e2 = d_e[index2];
+                float e = e1 < e2 ? e1 : e2;
+
+                float m1 = d_mass[index1];
+                float m2 = d_mass[index2];
+
                 glm::vec3 dis = glm::normalize(displacement);
-                b_v_out_1[i] = v1 - glm::vec3(2.0f) * dis * glm::dot(v1, dis);
-                b_v_out_2[i] = v2 - glm::vec3(2.0f) * dis * glm::dot(v2, dis);
+                glm::vec3 vr1 = glm::dot(v1, dis) * dis;
+                glm::vec3 vr2 = glm::dot(v2, dis) * dis;
+                glm::vec3 dvr1 = ((1 + e) * m2 * (vr2 - vr1)) / (m1 + m2);
+                glm::vec3 dvr2 = ((1 + e) * m1 * (vr1 - vr2)) / (m1 + m2);
+                d_bv[index1] += dvr1;
+                d_bv[index2] += dvr2;
             }
         }
     }
 }
 
-bool _checkDevice() {
-    return cudaSetDevice(0) == cudaSuccess ? true : false;
+
+__global__
+void _handleBallWallCollisions(int n) {
+    int index = threadIdx.x + blockIdx.x * blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+    for (int i = index; i < n; i += stride) {
+        int bid = d_id3[i];
+        int wid = d_id4[i];
+        glm::vec3 dir = getWallDir(wid);
+        glm::vec3 p = d_bp[bid];
+        glm::vec3 v = d_bv[bid];
+        float r = d_r[bid];
+        if (glm::dot(p, dir) + r > BOX_SIZE / 2
+            && glm::dot(v, dir) > 0) {
+
+            float e = d_e[bid];
+            d_bv[bid] -= (1 + e) * dir * glm::dot(v, dir);
+        }
+    }
 }
 
-bool _mallocForBallBallCollisions(
-    glm::vec3** p1, glm::vec3** p2, 
-    glm::vec3** p3, glm::vec3** p4, 
-    glm::vec3** p5, glm::vec3** p6,
-    float** m1, float** m2,
-    float** r1, float** r2,
-    float** e1, float** e2,
-    int n) {
+__device__ 
+glm::vec3 getWallDir(int w) {
+    switch (w)
+    {
+    case 0:
+        return glm::vec3(-1.0f, 0.0f, 0.0f);
+    case 1:
+        return glm::vec3(1.0f, 0.0f, 0.0f);
+    case 2:
+        return glm::vec3(0.0f, 0.0f, -1.0f);
+    case 3:
+        return glm::vec3(0.0f, 0.0f, 1.0f);
+    case 4:
+        return glm::vec3(0.0f, 1.0f, 0.0f);
+    case 5:
+        return glm::vec3(0.0f, -1.0f, 0.0f);
+    default:
+        return glm::vec3(0.0f);
+    }
+}
+
+void _initBallInfo(std::vector<Ball*>& balls, int n) {
+    for (int i = 0; i < n; i++) {
+        bp[i] = balls[i]->pos;
+        bv[i] = balls[i]->v;
+        mass[i] = balls[i]->m;
+        r[i] = balls[i]->radius;
+        e[i] = balls[i]->e;
+    }
 
     int v_size = n * sizeof(glm::vec3);
     int f_size = n * sizeof(float);
-    cudaError_t cudaStatus;
-    cudaStatus = cudaMallocManaged(p1, v_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(p2, v_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(p3, v_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(p4, v_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(p5, v_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(p6, v_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(m1, f_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(m2, f_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(r1, f_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(r2, f_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(e1, f_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    cudaStatus = cudaMallocManaged(e2, f_size);
-    if (cudaStatus != cudaSuccess) {
-        return false;
-    }
-    return true;
+
+    cudaMemcpyToSymbol(d_bp, bp, v_size, 0);
+    cudaMemcpyToSymbol(d_bv, bv, v_size, 0);
+    cudaMemcpyToSymbol(d_mass, mass, f_size, 0);
+    cudaMemcpyToSymbol(d_r, r, f_size, 0);
+    cudaMemcpyToSymbol(d_e, e, f_size, 0);
 }
 
-void _initForBallBallCollisions(
-    glm::vec3* b_pos_1, glm::vec3* b_pos_2, 
-    glm::vec3* b_v_1, glm::vec3* b_v_2, 
-    float* m1, float* m2,
-    float* r1, float* r2,
-    float* e1, float* e2,
-    std::vector<BallPair> bps, int n) {
-
-    for (int i = 0; i < n; i++) {
-        Ball* b1 = bps[i].b1;
-        Ball* b2 = bps[i].b2;
-        b_pos_1[i] = b1->pos;
-        b_pos_2[i] = b2->pos;
-        b_v_1[i] = b1->v;
-        b_v_2[i] = b2->v;
-        m1[i] = b1->m;
-        m2[i] = b2->m;
-        r1[i] = b1->radius;
-        r2[i] = b2->radius;
-        e1[i] = b1->e;
-        e2[i] = b2->e;
+void _updateBallBallCollisionInfo(std::vector<BallIndexPair>& bips, int m) {
+    for (int i = 0; i < m && i < MAX_COLLISIONS; i++) {
+        id1[i] = bips[i].id1;
+        id2[i] = bips[i].id2;
     }
+    int i_size = m * sizeof(int);
+    cudaMemcpyToSymbol(d_id1, id1, i_size, 0);
+    cudaMemcpyToSymbol(d_id2, id2, i_size, 0);
 }
 
-void _updateVelocity(
-    std::vector<BallPair> bps, int n,
-    glm::vec3* b_v_out_1, glm::vec3* b_v_out_2) {
+void _updateBallWallCollisionInfo(std::vector<BallWallIndexPair>& bwips, int m) {
+    for (int i = 0; i < m && i < MAX_COLLISIONS; i++) {
+        id3[i] = bwips[i].bid;
+        id4[i] = bwips[i].wid;
+    }
+    int i_size = m * sizeof(int);
+    cudaMemcpyToSymbol(d_id3, id3, i_size, 0);
+    cudaMemcpyToSymbol(d_id4, id4, i_size, 0);
+}
 
+void updateVelocity(std::vector<Ball*>& balls, int n) {
+    cudaMemcpyFromSymbol(bv, d_bv, n * sizeof(glm::vec3));
     for (int i = 0; i < n; i++) {
-        bps[i].b1->v = b_v_out_1[i];
-        bps[i].b2->v = b_v_out_2[i];
+        balls[i]->v = bv[i];
     }
 }
 

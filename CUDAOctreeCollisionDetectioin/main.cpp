@@ -73,7 +73,7 @@ int main() {
     Shader shader;
     shader.loadFromFile("vertex.glsl", "fragment.glsl");
 
-    world.addBalls(5);
+    world.addBalls(1000);
 
     float time_until_update = 0;
     float lastTime = glfwGetTime();

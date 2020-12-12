@@ -15,25 +15,27 @@ struct Ball {
     float m;
     float e;
     glm::vec3 color;
+    int id;
 };
+
 
 enum class WALL_TYPE {
-    LEFT,
-    RIGHT,
-    FAR,
-    NEAR,
-    TOP,
-    BOTTOM
+    LEFT = 0,
+    RIGHT = 1,
+    FAR = 2,
+    NEAR = 3,
+    TOP = 4,
+    BOTTOM = 5
 };
 
-struct BallPair {
-    Ball* b1;
-    Ball* b2;
+struct BallIndexPair {
+    int id1;
+    int id2;
 };
 
-struct BallWall {
-    Ball* b;
-    WALL_TYPE w;
+struct BallWallIndexPair {
+    int bid;
+    int wid;
 };
 
 class Octree {
@@ -44,8 +46,8 @@ public:
     void add(Ball* ball);
     void remove(Ball* ball);
     void move(Ball* ball, glm::vec3 old);
-    void potentialBallWallCollisions(std::vector<BallWall>& collisions);
-    void potentialBallBallCollisions(std::vector<BallPair>& collisions);
+    void potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions);
+    void potentialBallBallCollisions(std::vector<BallIndexPair>& collisions);
 
 private:
 
@@ -54,7 +56,7 @@ private:
     void addOrRemove(Ball* ball, glm::vec3 pos, bool addOrRemove);
     void collectBalls(std::set<Ball*>& bset);
     void remove(Ball* ball, glm::vec3 pos);
-    void potentialBallWallCollisions(std::vector<BallWall>& collisions, WALL_TYPE w, char coord, int dir);
+    void potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions, WALL_TYPE w, char coord, int dir);
 
     glm::vec3 lowerLeft;
     glm::vec3 upperRight;

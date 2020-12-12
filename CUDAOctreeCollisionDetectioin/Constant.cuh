@@ -15,6 +15,8 @@ const int Y_SEGMENTS = 50;
 const float PI = 3.14159265358979323846f;
 
 const float GRAVITY = 8.0f;
+
+__constant__
 const float BOX_SIZE = 10.0f;
 
 const float TIME_BETWEEN_UPDATES = 0.01f;
@@ -22,7 +24,7 @@ const int TIMER_MS = 25;
 
 const int MAX_OCTREE_DEPTH = 6;
 const int MIN_BALLS_PER_OCTREE = 3;
-const int MAX_BALLS_PER_OCTREE = 6;
+const int MAX_BALLS_PER_OCTREE = 16;
 
 const float SCENE_MAX_X = BOX_SIZE / 2;
 const float SCENE_MAX_Y = BOX_SIZE / 2;
@@ -37,6 +39,9 @@ const float MIN_RADIUS = 0.1;
 
 const float MAX_MASS = 5;
 const float MIN_MASS = 1;
+
+const float MAX_E = 1.0f;
+const float MIN_E = 0.5f;
 
 const float MAX_VELOCITY = 3;
 
@@ -63,3 +68,6 @@ struct Wall {
 };
 
 const Wall wall;
+
+const int MAX_BALLS = 10000;
+const int MAX_COLLISIONS = 10000000;

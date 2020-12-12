@@ -22,17 +22,20 @@ World::~World() {
 }
 
 void World::addBalls(const int n) {
-    for (int i = 0; i < n; i++) {
+    int nn = std::min(n, MAX_BALLS);
+    for (int i = 0; i < nn; i++) {
         Ball* b = new Ball();
         b->pos = randVec3() * BOX_SIZE - glm::vec3(SCENE_MAX_X, SCENE_MAX_Y, SCENE_MAX_Z);
         b->v = randVec3() * 2.0f - glm::vec3(MAX_VELOCITY);
         b->radius = randFloat() * (MAX_RADIUS - MIN_RADIUS) + MIN_RADIUS;
         b->color = randVec3() * 0.6f + 0.2f;
         b->m = randFloat() * (MAX_MASS - MIN_MASS) + MIN_MASS;
-        b->e = randFloat();
+        b->e = randFloat() * (MAX_E - MIN_E) + MIN_E;
+        b->id = i;
         balls.push_back(b);
         root->add(b);
     }
+    _initBallInfo(balls, nn);
 }
 
 void World::step(float t, float& timeUntilUpdate) {
@@ -69,46 +72,47 @@ void World::applyGravity() {
     }
 }
 
-bool World::testBallBallCollision(BallPair bp)
-{
-    glm::vec3 displacement = bp.b1->pos - bp.b2->pos;
-    float r = bp.b1->radius + bp.b2->radius;
+
+bool World::testBallBallCollision(BallIndexPair bip) {
+    Ball* b1 = balls[bip.id1];
+    Ball* b2 = balls[bip.id2];
+    glm::vec3 displacement = b1->pos - b2->pos;
+    float r = b1->radius + b2->radius;
     if (glm::dot(displacement, displacement) < r * r) {
-        glm::vec3 dv = bp.b1->v - bp.b2->v;
-        return glm::dot(dv, displacement) < 0; 
+        glm::vec3 dv = b1->v - b2->v;
+        return glm::dot(dv, displacement) < 0;
     }
     return false;
 }
 
-bool World::testBallWallCollision(BallWall bw) {
-    glm::vec3 dir = wallDirection(bw.w);
-    return glm::dot(bw.b->pos, dir) + bw.b->radius > BOX_SIZE / 2
-        && glm::dot(bw.b->v, dir) > 0;
+
+bool World::testBallWallCollision(BallWallIndexPair bwip) {
+    glm::vec3 dir = wallDirection(WALL_TYPE(static_cast<WALL_TYPE>(bwip.wid)));
+    Ball* b = balls[bwip.bid];
+    return glm::dot(b->pos, dir) + b->radius > BOX_SIZE / 2
+        && glm::dot(b->v, dir) > 0;
 }
 
 void World::handleBallBallCollisions() {
-    std::vector<BallPair> bps;
-    root->potentialBallBallCollisions(bps);
-   //  handleBallBallCollisionsCpu(bps);
-    handleBallBallCollisionsCuda(bps);
+    std::vector<BallIndexPair> bips;
+    root->potentialBallBallCollisions(bips);
+    handleBallBallCollisionsCuda(bips, balls);
+    //handleBallBallCollisionsCpu(bips);
 }
 
 void World::handleBallWallCollisions() {
-    std::vector<BallWall> bws;
-    root->potentialBallWallCollisions(bws);
-    for (BallWall bw : bws) {
-        if (testBallWallCollision(bw)) {
-            glm::vec3 dir = glm::normalize(wallDirection(bw.w));
-            bw.b->v -= glm::vec3(2.0f) * dir * glm::dot(bw.b->v, dir);
-        }
-    }
+    std::vector<BallWallIndexPair> bwips;
+    root->potentialBallWallCollisions(bwips);
+    handleBallWallCollisionsCuda(bwips, balls);
+    //handleBallWallCollisionsCpu(bwips);
 }
 
-void World::handleBallBallCollisionsCpu(std::vector<BallPair> bps) {
-    for (BallPair bp : bps) {
-        if (testBallBallCollision(bp)) {
-            Ball* b1 = bp.b1;
-            Ball* b2 = bp.b2;
+
+void World::handleBallBallCollisionsCpu(std::vector<BallIndexPair>& bips) {
+    for (BallIndexPair bip : bips) {
+        if (testBallBallCollision(bip)) {
+            Ball* b1 = balls[bip.id1];
+            Ball* b2 = balls[bip.id2];
             glm::vec3 displacement = glm::normalize(b1->pos - b2->pos);
             float e = std::min(b1->e, b2->e);
             glm::vec3 vr1 = glm::dot(b1->v, displacement) * displacement;
@@ -117,6 +121,16 @@ void World::handleBallBallCollisionsCpu(std::vector<BallPair> bps) {
             glm::vec3 dvr2 = ((1 + e) * b1->m * (vr1 - vr2)) / (b1->m + b2->m);
             b1->v += dvr1;
             b2->v += dvr2;
+        }
+    }
+}
+
+void World::handleBallWallCollisionsCpu(std::vector<BallWallIndexPair>& bwips) {
+    for (BallWallIndexPair bwip : bwips) {
+        if (testBallWallCollision(bwip)) {
+            Ball* b = balls[bwip.bid];
+            glm::vec3 dir = glm::normalize(wallDirection(WALL_TYPE(static_cast<WALL_TYPE>(bwip.wid))));
+            b->v -= glm::vec3(1 + b->e) * dir * glm::dot(b->v, dir);
         }
     }
 }
@@ -143,6 +157,8 @@ glm::vec3 World::wallDirection(WALL_TYPE w) const {
 
 void World::performUpdate() {
     applyGravity();
+    updateBallsInfo(balls, balls.size());
     handleBallBallCollisions();
     handleBallWallCollisions();
+    updateVelocity(balls, balls.size());
 }
