@@ -40,7 +40,7 @@ struct BallWallIndexPair {
 
 class Octree {
 public:
-    Octree(glm::vec3 min, glm::vec3 max, int depth_);
+    Octree(const glm::vec3 & min, const glm::vec3 & max, const int depth_);
     ~Octree();
 
     // add the ball into the tree
@@ -61,7 +61,8 @@ private:
     void addOrRemove(Ball* ball, glm::vec3 pos, bool addOrRemove);
     void collectBalls(std::set<Ball*>& bset);
     void remove(Ball* ball, glm::vec3 pos);
-    void potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions, WALL_TYPE w, char coord, int dir);
+    void potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions, 
+        const WALL_TYPE w, const char coord, const int dir);
 
     glm::vec3 lowerLeft;
     glm::vec3 upperRight;

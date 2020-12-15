@@ -24,7 +24,7 @@ __device__ int d_id1[MAX_COLLISIONS], d_id2[MAX_COLLISIONS];
 __device__ int d_id3[MAX_COLLISIONS], d_id4[MAX_COLLISIONS];
 
 
-void updateBallsInfo(std::vector<Ball*>& balls, int n) {
+void updateBallsInfo(std::vector<Ball*>& balls, const int n) {
     for (int i = 0; i < n; i++) {
         bp[i] = balls[i]->pos;
         bv[i] = balls[i]->v;
@@ -76,7 +76,7 @@ void _handleBallBallCollisions(int n) {
             glm::vec3 v1 = d_bv[index1];
             glm::vec3 v2 = d_bv[index2];
             glm::vec3 dv = v1 - v2;
-            if (glm::dot(dv, displacement) < 0) {
+            if (glm::dot(dv, displacement) <= 0) {
                 float e1 = d_e[index1];
                 float e2 = d_e[index2];
                 float e = e1 < e2 ? e1 : e2;
@@ -118,7 +118,7 @@ void _handleBallWallCollisions(int n) {
 }
 
 __device__ 
-glm::vec3 getWallDir(int w) {
+glm::vec3 getWallDir(const int w) {
     switch (w)
     {
     case 0:
@@ -138,7 +138,7 @@ glm::vec3 getWallDir(int w) {
     }
 }
 
-void _initBallInfo(std::vector<Ball*>& balls, int n) {
+void _initBallInfo(std::vector<Ball*>& balls, const int n) {
     for (int i = 0; i < n; i++) {
         bp[i] = balls[i]->pos;
         bv[i] = balls[i]->v;
@@ -157,7 +157,7 @@ void _initBallInfo(std::vector<Ball*>& balls, int n) {
     cudaMemcpyToSymbol(d_e, e, f_size, 0);
 }
 
-void _updateBallBallCollisionInfo(std::vector<BallIndexPair>& bips, int m) {
+void _updateBallBallCollisionInfo(std::vector<BallIndexPair>& bips, const int m) {
     for (int i = 0; i < m && i < MAX_COLLISIONS; i++) {
         id1[i] = bips[i].id1;
         id2[i] = bips[i].id2;
@@ -167,7 +167,7 @@ void _updateBallBallCollisionInfo(std::vector<BallIndexPair>& bips, int m) {
     cudaMemcpyToSymbol(d_id2, id2, i_size, 0);
 }
 
-void _updateBallWallCollisionInfo(std::vector<BallWallIndexPair>& bwips, int m) {
+void _updateBallWallCollisionInfo(std::vector<BallWallIndexPair>& bwips, const int m) {
     for (int i = 0; i < m && i < MAX_COLLISIONS; i++) {
         id3[i] = bwips[i].bid;
         id4[i] = bwips[i].wid;
@@ -177,7 +177,7 @@ void _updateBallWallCollisionInfo(std::vector<BallWallIndexPair>& bwips, int m) 
     cudaMemcpyToSymbol(d_id4, id4, i_size, 0);
 }
 
-void updateVelocity(std::vector<Ball*>& balls, int n) {
+void updateVelocity(std::vector<Ball*>& balls, const int n) {
     cudaMemcpyFromSymbol(bv, d_bv, n * sizeof(glm::vec3));
     for (int i = 0; i < n; i++) {
         balls[i]->v = bv[i];

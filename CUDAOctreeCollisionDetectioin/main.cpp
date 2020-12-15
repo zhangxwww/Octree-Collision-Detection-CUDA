@@ -18,11 +18,12 @@
 
 #include "Constant.cuh"
 
+const int N_Balls = 3000;
 
 World world;
 KeyboardController keyboardController;
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
 GLFWwindow* init();
 
 // Generate coordinates and indices for the vetices of the ball
@@ -39,6 +40,7 @@ int main() {
 
     initSphere();
 
+    // vbo, vao of the ball
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -46,7 +48,7 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sphereVertices.size() * sizeof(float), &sphereVertices[0], GL_STATIC_DRAW);
 
-    GLuint element_buffer_object;
+    unsigned int element_buffer_object;
     glGenBuffers(1, &element_buffer_object);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_object);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphereIndices.size() * sizeof(int), &sphereIndices[0], GL_STATIC_DRAW);
@@ -57,6 +59,7 @@ int main() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+    // vbo, vao of the wall
     unsigned int wallVBO, wallVAO, wallEBO;
     glGenVertexArrays(1, &wallVAO);
     glGenBuffers(1, &wallVBO);
@@ -75,9 +78,9 @@ int main() {
     Shader shader;
     shader.loadFromFile("vertex.glsl", "fragment.glsl");
 
-    world.addBalls(1000);
+    world.addBalls(N_Balls);
 
-    float time_until_update = 0;
+    float timeUntilUpdate = 0;
     float lastTime = glfwGetTime();
     while (!glfwWindowShouldClose(window) && !keyboardController.shouldClose()) {
         float currentTime = glfwGetTime();
@@ -93,7 +96,7 @@ int main() {
         shader.use();
 
         keyboardController.step(deltaTime);
-        world.step(deltaTime, time_until_update);
+        world.step(deltaTime, timeUntilUpdate);
 
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)(WIDTH) / HEIGHT, 1.0f, 100.0f);
         glm::mat4 view = glm::lookAt(keyboardController.getEyePos(), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -138,7 +141,7 @@ int main() {
     return 0;
 }
 
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
     keyboardController.callback(window, key, scancode, action, mode);
 }
 
@@ -158,7 +161,7 @@ GLFWwindow* init() {
         return nullptr;
     }
     glfwMakeContextCurrent(window);
-    glfwSetKeyCallback(window, key_callback);
+    glfwSetKeyCallback(window, keyCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {

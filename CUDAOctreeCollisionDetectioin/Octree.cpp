@@ -1,6 +1,6 @@
 #include "Octree.h"
 
-Octree::Octree(glm::vec3 min, glm::vec3 max, int depth_):
+Octree::Octree(const glm::vec3 & min, const glm::vec3 & max, const int depth_):
     lowerLeft(min), upperRight(max), 
     center((min + max) / glm::vec3(2.0f, 2.0f, 2.0f)),
     numBalls(0), depth(depth_), has_children(false) {
@@ -186,7 +186,8 @@ void Octree::remove(Ball* ball, glm::vec3 pos) {
 }
 
 
-void Octree::potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions, WALL_TYPE w, char coord, int dir) {
+void Octree::potentialBallWallCollisions(std::vector<BallWallIndexPair>& collisions, 
+    const WALL_TYPE w, const char coord, const int dir) {
     if (has_children) {
         for (int d2 = 0; d2 < 2; d2++) {
             for (int d3 = 0; d3 < 2; d3++) {
