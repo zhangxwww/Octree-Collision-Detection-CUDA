@@ -104,7 +104,7 @@ void _handleBallWallCollisions(int n) {
     for (int i = index; i < n; i += stride) {
         int bid = d_id3[i];
         int wid = d_id4[i];
-        glm::vec3 dir = getWallDir(wid);
+        glm::vec3 dir = _getWallDir(wid);
         glm::vec3 p = d_bp[bid];
         glm::vec3 v = d_bv[bid];
         float r = d_r[bid];
@@ -118,7 +118,7 @@ void _handleBallWallCollisions(int n) {
 }
 
 __device__ 
-glm::vec3 getWallDir(const int w) {
+glm::vec3 _getWallDir(const int w) {
     switch (w)
     {
     case 0:

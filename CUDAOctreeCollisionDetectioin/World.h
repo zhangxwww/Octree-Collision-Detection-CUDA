@@ -23,12 +23,14 @@ private:
     void move(float dt);
     void applyGravity();
 
+    // cpu version, not used
     bool testBallBallCollision(BallIndexPair bip);
     bool testBallWallCollision(BallWallIndexPair bwip);
 
     void handleBallBallCollisions();
     void handleBallWallCollisions();
 
+    // cpu version, not used
     void handleBallBallCollisionsCpu(std::vector<BallIndexPair>& bips);
     void handleBallWallCollisionsCpu(std::vector<BallWallIndexPair>& bwips);
 

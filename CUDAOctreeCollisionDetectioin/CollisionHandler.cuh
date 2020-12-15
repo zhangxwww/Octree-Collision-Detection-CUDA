@@ -17,7 +17,7 @@ void handleBallBallCollisionsCuda(std::vector<BallIndexPair>& bips, std::vector<
 void handleBallWallCollisionsCuda(std::vector<BallWallIndexPair>& bwips, std::vector<Ball*>& balls);
 
 // update velocity in host
-void updateVelocity( std::vector<Ball*>& balls, const int n);
+void updateVelocity(std::vector<Ball*>& balls, const int n);
 
 // n: # pairs of balls
 __global__
@@ -29,7 +29,7 @@ void _handleBallWallCollisions(int n);
 
 // get the normal vector of each wall
 __device__
-glm::vec3 getWallDir(const int w);
+glm::vec3 _getWallDir(const int w);
 
 // initialize the mass, radius, COR of each ball in device
 void _initBallInfo(std::vector<Ball*>& balls, const int n);
